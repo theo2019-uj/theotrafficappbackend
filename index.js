@@ -121,7 +121,7 @@ exports.registerRoadUser = functions.https.onRequest((request, response) => {
             });
         }
         if (email && password) {
-            app.auth().createUser({
+            admin.auth().createUser({
                 email: request.body.username,
                 emailVerified: request.body.emailVerificationIndicator,
                 phoneNumber: request.body.cellPhoneNumber,
