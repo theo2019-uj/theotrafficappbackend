@@ -317,7 +317,7 @@ exports.signOutCurrentUser = functions.https.onRequest((request, response) => {
 
 exports.getCurrentUserLoggedIn = functions.https.onRequest((request, response) => {
     cors(request, response, () => {
-        if (request.method !== "POST") {
+        if (request.method !== "GET") {
             return response.status(500).json({
                 message: "Operation not allowed"
             });
