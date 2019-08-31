@@ -112,12 +112,12 @@ exports.registerRoadUser = functions.https.onRequest((request, response) => {
 
         if (!email) {
             return response.status(400).json({
-                message: "Unable to process request"
+                message: "Unable to process request. Email is missing."
             });
         }
         if (!password) {
             return response.status(400)({
-                message: "Unable to process request"
+                message: "Unable to process request. Password is missing."
             });
         }
         if (email && password) {
@@ -135,6 +135,61 @@ exports.registerRoadUser = functions.https.onRequest((request, response) => {
                 .catch(function (error) {
                     console.log(error.code + ": " + error.message);
                 });
+        }
+    });
+});
+
+exports.updateUserDetails = functions.https.onRequest((request, response) => {
+    cors(request, response, () => {
+        if (request.method !== "POST") {
+            return response.status(500).json({
+                message: "Operation not allowed"
+            });
+        }
+
+        const requestData = request.body;
+
+        const roadUserIdNumber = request.body.roadUserIdNumber;
+        delete requestData.roadUserIdNumber;
+        // const cellPhoneNumber = request.body.cellPhoneNumber;
+        // const telephoneAtHome = request.body.telephoneAtHome;
+        // const countryCode = request.body.countryCode;
+        // const contactTelephoneNumber = request.body.contactTelephoneNumber;
+        // const emailAddress = request.body.emailAddress;
+        // const cityOrTown = request.body.cityOrTown
+        // const dateOfBirth = request.body.dateOfBirth
+        // const firstNames = request.body.firstNames
+        // const gender = request.body.gender
+        // const initials = request.body.initials
+        // const licenseCode = request.body.licenseCode
+        // const licenseDateOfExpiry = request.body.licenseDateOfExpiry
+        // const licenseDateOfIssue = request.body.licenseDateOfIssue
+        // const licenseNumber = request.body.licenseNumber
+        // const noticeDeliveryToPostalAddress = request.body.noticeDeliveryToPostalAddress
+        // const postalAddress1 = request.body.postalAddress1
+        // const postalAddress2 = request.body.postalAddress2
+        // const postalAddress3 = request.body.postalAddress3
+        // const postalAddressCode = request.body.postalAddressCode
+        // const streetAddress1 = request.body.streetAddress1
+        // const streetAddress2 = request.body.licenseNumber
+        // const streetAddress3 = request.body.streetAddress3
+        // const suburb = request.body.suburb
+        // const surname = request.body.surname
+
+        // Gets data from the request which will be used to add to the POST service
+
+        if (!requestData.empty) {
+            admin.firestore().doc(roadUsersReference + roadUserIdNumber).update(requestData)
+                .then(() => {
+                    response.send('Registration successful.');
+                })
+                .catch(error => {
+                    console.log(error)
+                    response.status(500).send(error)
+                })
+        }
+        else {
+            response.status(202).send('Request could not be processed as there is not data to be updated.');
         }
     });
 });
@@ -205,27 +260,73 @@ exports.validateLoginCredentials = functions.https.onRequest((request, response)
         const email = request.body.email;
         const password = request.body.password;
 
-        firebase.auth().signInWithEmailAndPassword(email, password)
-            .catch(function (error) {
-                var errorCode = error.code;
-                var errorMessage = error.message;
+        if (email.length < 4) {
+            response.status(202).send('Email address is missing.');
+            return;
+        }
+        if (password.length < 4) {
+            response.status(202).send('Password is missing.');
+            return;
+        }
 
-                if (errorCode === 'auth/wrong-password') {
-                    return response.status(500).send('Email address or password incorrect');
-                }
-                if (errorCode === 'auth/user-disabled') {
-                    return response.status(500).send('User has been disabled. Contact IT support.');
-                }
-                if (errorCode === 'auth/user-not-found') {
-                    return response.status(500).send('User with the credentials provided is not found');
-                }
-                if (errorCode === 'auth/invalid-email') {
-                    return response.status(500).send('Email address or password incorrect');
-                }
+        if (!firebase.auth().currentUser) {
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .catch(function (error) {
+                    var errorCode = error.code;
+                    var errorMessage = error.message;
 
-                if (errorCode === null) {
-                    return response.send('Login successful!');
-                }
+                    if (errorCode === 'auth/wrong-password') {
+                        return response.status(202).send('Email address or password incorrect');
+                    }
+                    if (errorCode === 'auth/user-disabled') {
+                        return response.status(202).send('User has been disabled. Contact IT support.');
+                    }
+                    if (errorCode === 'auth/user-not-found') {
+                        return response.status(202).send('User with the credentials provided is not found');
+                    }
+                    if (errorCode === 'auth/invalid-email') {
+                        return response.status(202).send('Email address or password incorrect');
+                    }
+                });
+        }
+        else {
+            firebase.auth().signOut();
+            response.send('User required to sign-in again.');
+        }
+
+    });
+});
+
+exports.signOutCurrentUser = functions.https.onRequest((request, response) => {
+    cors(request, response, () => {
+        if (request.method !== "POST") {
+            return response.status(500).json({
+                message: "Operation not allowed"
             });
+        }
+
+        firebase.auth().signOut
+            .then(() => {
+                response.status.send('User signed out.');
+            });
+    });
+});
+
+exports.getCurrentUserLoggedIn = functions.https.onRequest((request, response) => {
+    cors(request, response, () => {
+        if (request.method !== "POST") {
+            return response.status(500).json({
+                message: "Operation not allowed"
+            });
+        }
+
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                response.status(200).send(user);
+            }
+            else {
+                response.status(200).send('User logged out');
+            }
+        });
     });
 });
