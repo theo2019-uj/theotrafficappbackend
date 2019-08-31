@@ -272,7 +272,7 @@ exports.validateLoginCredentials = functions.https.onRequest((request, response)
         if (!firebase.auth().currentUser) {
             firebase.auth().signInWithEmailAndPassword(email, password)
                 .then(credentials => {
-                    response.status.send(credentials.user);
+                    return response.status(200).send(credentials.user);
                 })
                 .catch(function (error) {
                     var errorCode = error.code;
