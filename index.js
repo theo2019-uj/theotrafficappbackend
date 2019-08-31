@@ -272,6 +272,11 @@ exports.validateLoginCredentials = functions.https.onRequest((request, response)
         if (!firebase.auth().currentUser) {
             firebase.auth().signInWithEmailAndPassword(email, password)
                 .then(credentials => {
+                    delete credentials.user.stsTokenManager.apiKey;
+                    delete credentials.user.apiKey;
+                    delete credentials.user.appName;
+                    delete credentials.user.authDomain;
+                    
                     return response.status(200).send(credentials.user);
                 })
                 .catch(function (error) {
