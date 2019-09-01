@@ -249,6 +249,8 @@ exports.storeUserDetails = functions.https.onRequest((request, response) => {
     });
 });
 
+exports.CheckUser = 
+
 exports.validateLoginCredentials = functions.https.onRequest((request, response) => {
     cors(request, response, () => {
         if (request.method !== "POST") {
@@ -272,12 +274,14 @@ exports.validateLoginCredentials = functions.https.onRequest((request, response)
         if (!firebase.auth().currentUser) {
             firebase.auth().signInWithEmailAndPassword(email, password)
                 .then(credentials => {
-                    delete credentials.user.stsTokenManager.apiKey;
-                    delete credentials.user.apiKey;
-                    delete credentials.user.appName;
-                    delete credentials.user.authDomain;
-                    
-                    return response.status(200).send(credentials.user);
+                    return response.status(200).json({
+                        displayName: credentials.user.displayName,
+                        photoURL: credentials.user.photoURL,
+                        email: credentials.user.email,
+                        emailVerified: credentials.user.emailVerified,
+                        phoneNumber: credentials.user.phoneNumber,
+                        refreshToken: credentials.user.refreshToken
+                    });
                 })
                 .catch(function (error) {
                     var errorCode = error.code;
