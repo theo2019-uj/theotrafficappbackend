@@ -116,18 +116,18 @@ exports.registerRoadUser = functions.https.onRequest((request, response) => {
             });
         }
         if (!password) {
-            return response.status(400)({
+            return response.status(400).json({
                 message: "Unable to process request. Password is missing."
             });
         }
-        if (email && password) {
+        if (!email.empty && !password.empty) {
             admin.auth().createUser({
                 email: request.body.username,
-                emailVerified: request.body.emailVerificationIndicator,
+                emailVerified: false,
                 phoneNumber: request.body.cellPhoneNumber,
                 password: request.body.password,
                 displayName: request.body.displayName,
-                disabled: request.body.disabilityIndicator
+                disabled: false
             })
                 .then(response.status(200).json({
                     message: "Registration successful."
@@ -135,6 +135,12 @@ exports.registerRoadUser = functions.https.onRequest((request, response) => {
                 .catch(function (error) {
                     console.log(error.code + ": " + error.message);
                 });
+        }
+        else {
+            
+            return response.status(202).json({
+                message: 'The request that was sent is invalid. Minimum information required is invalid to register user.'
+            })
         }
     });
 });
@@ -366,16 +372,79 @@ const createNotification = (notification => {
         .then(doc => console.log('Notification added', doc))
 })
 
-exports.accidentReportCreated = functions.firestore
-    .document('accidentReports/{accidentReportId}')
-    .onCreate(doc => {
-        const accidentData = doc.data();
+exports.accidentReportCreated = functions.firestore.document('accidentReports/{accidentReportId}').onCreate(doc => {
+    const accidentData = doc.data();
 
-        const notification = {
-            content: "New accident report created",
-            user: `${accidentData.roadUserName} ${accidentData.roadUserSurname}`,
-            timeCreate: admin.firestore.FieldValue.serverTimestamp()
+    const notification = {
+        content: "New accident report created",
+        user: `${accidentData.roadUserName} ${accidentData.roadUserSurname}`,
+        timeCreate: admin.firestore.FieldValue.serverTimestamp()
+    }
+
+    return createNotification(notification);
+})
+
+exports.createAccidentReport = functions.https.onRequest((request, response) => {
+    cors(request, response, () => {
+        if (request.method !== "POST") {
+            return response.status(500).json({
+                message: "Operation not allowed"
+            });
         }
 
-        return createNotification(notification);
-    })
+        const accidentCreatedBy = request.body.UID;
+        const userType = request.body.userType;
+
+        if (userType === "admin")
+        {
+            const adminUserData = getAdminUserData(accidentCreatedBy, userType);
+        }
+
+        // const cityOrTown = request.body.cityOrTown
+        // const dateOfBirth = request.body.dateOfBirth
+        // const firstNames = request.body.firstNames
+        // const gender = request.body.gender
+        // const initials = request.body.initials
+        // const licenseCode = request.body.licenseCode
+        // const licenseDateOfExpiry = request.body.licenseDateOfExpiry
+        // const licenseDateOfIssue = request.body.licenseDateOfIssue
+        // const licenseNumber = request.body.licenseNumber
+        // const noticeDeliveryToPostalAddress = request.body.noticeDeliveryToPostalAddress
+        // const postalAddress1 = request.body.postalAddress1
+        // const postalAddress2 = request.body.postalAddress2
+        // const postalAddress3 = request.body.postalAddress3
+        // const postalAddressCode = request.body.postalAddressCode
+        // const streetAddress1 = request.body.streetAddress1
+        // const streetAddress2 = request.body.licenseNumber
+        // const streetAddress3 = request.body.streetAddress3
+        // const suburb = request.body.suburb
+        // const surname = request.body.surname
+
+        // Gets data from the request which will be used to add to the POST service
+        const roadUserInformation = {
+            cellPhoneNumber: request.body.cellPhoneNumber,
+            contactTelephoneNumber: request.body.contactTelephoneNumber,
+            countryCode: request.body.countryCode,
+            emailAddress: request.body.emailAddress,
+            telephoneAtHome: request.body.telephoneAtHome,
+        };
+
+        // New comment
+        admin.firestore().doc(roadUsersReference + roadUserIdNumber).update(roadUserInformation)
+            .then(() => {
+                response.send('Registration successful.');
+            })
+            .catch(error => {
+                console.log(error)
+                response.status(500).send(error)
+            })
+    });
+});
+
+function getAdminUserData (accidentCreatedBy, userType) {
+
+    admin.firestore.document(metroPoliceReference + accidentCreatedBy).get()
+    .then(() => {
+        return snapshot.data();
+    });
+};
