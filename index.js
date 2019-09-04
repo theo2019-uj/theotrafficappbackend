@@ -249,8 +249,6 @@ exports.storeUserDetails = functions.https.onRequest((request, response) => {
     });
 });
 
-exports.CheckUser = 
-
 exports.validateLoginCredentials = functions.https.onRequest((request, response) => {
     cors(request, response, () => {
         if (request.method !== "POST") {
@@ -262,12 +260,12 @@ exports.validateLoginCredentials = functions.https.onRequest((request, response)
         const email = request.body.email;
         const password = request.body.password;
 
-        if (email.length < 4) {
-            response.status(202).send('Email address is missing.');
+        if (email.length === null) {
+            response.status(202).send('Email address is short.');
             return;
         }
         if (password.length < 4) {
-            response.status(202).send('Password is missing.');
+            response.status(202).send('Password is short.');
             return;
         }
 
@@ -342,3 +340,42 @@ exports.getCurrentUserLoggedIn = functions.https.onRequest((request, response) =
         });
     });
 });
+
+exports.getCurrentUserLoggedIn = functions.https.onRequest((request, response) => {
+    cors(request, response, () => {
+        if (request.method !== "GET") {
+            return response.status(500).json({
+                message: "Operation not allowed"
+            });
+        }
+
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                response.status(200).send(user);
+            }
+            else {
+                response.status(200).send('User logged out');
+            }
+        });
+    });
+});
+
+const createNotification = (notification => {
+    return admin.firestore().collection('accidentNotifications')
+        .add(notification)
+        .then(doc => console.log('Notification added', doc))
+})
+
+exports.accidentReportCreated = functions.firestore
+    .document('accidentReports/{accidentReportId}')
+    .onCreate(doc => {
+        const accidentData = doc.data();
+
+        const notification = {
+            content: "New accident report created",
+            user: `${accidentData.roadUserName} ${accidentData.roadUserSurname}`,
+            timeCreate: admin.firestore.FieldValue.serverTimestamp()
+        }
+
+        return createNotification(notification);
+    })
