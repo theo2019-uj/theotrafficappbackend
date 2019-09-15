@@ -25,7 +25,7 @@ firebase.initializeApp(firebaseConfig);
 const db = admin.firestore();
 
 let vehicleReference = 'vehicleInformation/';
-let roadUsersReference = 'users/roadUsers/individuals/';
+let roadUsersReference = 'usert/s/roadUsers/individuals/';
 let authorizingPersonnelReference = 'official/authorizingPersonnel/';
 let metroPoliceReference = 'official/metroPolice/';
 
@@ -255,6 +255,11 @@ exports.storeUserDetails = functions.https.onRequest((request, response) => {
     });
 });
 
+function sendVerificationEmail() {
+    firebase.auth().currentUser.sendEmailVerification().then (function() {
+    })
+}
+
 exports.validateLoginCredentials = functions.https.onRequest((request, response) => {
     cors(request, response, () => {
         if (request.method !== "POST") {
@@ -267,24 +272,25 @@ exports.validateLoginCredentials = functions.https.onRequest((request, response)
         const password = request.body.password;
 
         if (email.length === null) {
-            response.status(202).send('Email address is short.');
-            return;
+            return response.status(202).send('Email address is short.');
         }
         if (password.length < 4) {
-            response.status(202).send('Password is short.');
-            return;
+            return response.status(202).send('Password is short.');
         }
 
         if (!firebase.auth().currentUser) {
             firebase.auth().signInWithEmailAndPassword(email, password)
                 .then(credentials => {
+                    firebase.auth().currentUser.sendEmailVerification()
                     return response.status(200).json({
+                        userUID: credentials.user.uid,
                         displayName: credentials.user.displayName,
                         photoURL: credentials.user.photoURL,
                         email: credentials.user.email,
                         emailVerified: credentials.user.emailVerified,
                         phoneNumber: credentials.user.phoneNumber,
-                        refreshToken: credentials.user.refreshToken
+                        refreshToken: credentials.user.refreshToken,
+                        verifyEmailAddress: true
                     });
                 })
                 .catch(function (error) {
@@ -298,7 +304,7 @@ exports.validateLoginCredentials = functions.https.onRequest((request, response)
                         return response.status(202).send('User has been disabled. Contact IT support.');
                     }
                     if (errorCode === 'auth/user-not-found') {
-                        return response.status(202).send('User with the credentials provided is not found');
+                        return response.status(202).send('Email address or password incorrect');
                     }
                     if (errorCode === 'auth/invalid-email') {
                         return response.status(202).send('Email address or password incorrect');
@@ -370,7 +376,7 @@ const createNotification = (notification => {
     return admin.firestore().collection('accidentNotifications')
         .add(notification)
         .then(doc => console.log('Notification added', doc))
-})
+});
 
 exports.accidentReportCreated = functions.firestore.document('accidentReports/{accidentReportId}').onCreate(doc => {
     const accidentData = doc.data();
@@ -382,7 +388,39 @@ exports.accidentReportCreated = functions.firestore.document('accidentReports/{a
     }
 
     return createNotification(notification);
-})
+});
+
+function addPrimaryAccidentReportDetails (accidentReportData) {
+    
+}
+
+function addConditionOfAccident (accidentReportData) {
+
+}
+
+function addDriverOrCyclist (accidentReportData) {
+
+}
+
+function addLocationDetails (accidentReportData) {
+
+}
+
+function addRoadTypeDetails (accidentReportData) {
+
+}
+
+function addSummaryOfPersonsInvolvedDetails (accidentReportData) {
+
+}
+
+function addVehicleDetails (accidentReportData) {
+
+}
+
+function addWitnessInformation (accidentReportData) {
+    
+}
 
 exports.createAccidentReport = functions.https.onRequest((request, response) => {
     cors(request, response, () => {
@@ -392,14 +430,17 @@ exports.createAccidentReport = functions.https.onRequest((request, response) => 
             });
         }
 
-        const accidentCreatedBy = request.body.UID;
-        const userType = request.body.userType;
+        accidentReportData = request.body;
 
-        if (userType === "admin")
+        if (accidentReportData == '')
         {
-            const adminUserData = getAdminUserData(accidentCreatedBy, userType);
+            return response.status(404).json({
+                message: 'Unable to process an empty request. Please try again.'
+            });
         }
 
+        
+        
         // const cityOrTown = request.body.cityOrTown
         // const dateOfBirth = request.body.dateOfBirth
         // const firstNames = request.body.firstNames
