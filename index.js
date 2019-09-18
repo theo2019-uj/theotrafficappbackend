@@ -25,12 +25,38 @@ firebase.initializeApp(firebaseConfig);
 const db = admin.firestore();
 
 let vehicleReference = 'vehicleInformation/';
-let roadUsersReference = 'usert/s/roadUsers/individuals/';
+let roadUsersReference = 'users/roadUsers/individuals/';
 let authorizingPersonnelReference = 'official/authorizingPersonnel/';
 let metroPoliceReference = 'official/metroPolice/';
+let accidentReportPrimaryInfoReference = 'accidentReports/';
 
 exports.getRoadUser = functions.https.onRequest((request, response) => {
+    cors(request, response, () => {
+        if (request.method !== "GET") {
+            return response.status(500).json({
+                message: "Operation not allowed"
+            });
+        }
 
+        const roadUserId = request.query.roadUserIdNumber;
+
+        db.doc(roadUsersReference + roadUserId).get()
+            .then(snapshot => {
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    response.send(data);
+                }
+                else {
+                    return response.status('202').json({
+                        message: 'Unable to retrieve your information.'
+                    })
+                }
+            })
+            .catch(error => {
+                console.log(error)
+                response.status(500).send(error)
+            });
+    });
 });
 
 exports.getVehicleDetailsByVehicleId = functions.https.onRequest((request, response) => {
@@ -121,7 +147,7 @@ exports.registerRoadUser = functions.https.onRequest((request, response) => {
             });
         }
         if (!email.empty && !password.empty) {
-            admin.auth().createUser({
+            firebase.auth().createUser({
                 email: request.body.username,
                 emailVerified: false,
                 phoneNumber: request.body.cellPhoneNumber,
@@ -132,12 +158,14 @@ exports.registerRoadUser = functions.https.onRequest((request, response) => {
                 .then(response.status(200).json({
                     message: "Registration successful."
                 }))
+            firebase.auth().currentUser.sendEmailVerification().then(function () {
+            })
                 .catch(function (error) {
                     console.log(error.code + ": " + error.message);
                 });
         }
         else {
-            
+
             return response.status(202).json({
                 message: 'The request that was sent is invalid. Minimum information required is invalid to register user.'
             })
@@ -187,7 +215,7 @@ exports.updateUserDetails = functions.https.onRequest((request, response) => {
         if (!requestData.empty) {
             admin.firestore().doc(roadUsersReference + roadUserIdNumber).update(requestData)
                 .then(() => {
-                    response.send('Registration successful.');
+                    response.send('Success.');
                 })
                 .catch(error => {
                     console.log(error)
@@ -214,6 +242,7 @@ exports.storeUserDetails = functions.https.onRequest((request, response) => {
         const countryCode = request.body.countryCode;
         const contactTelephoneNumber = request.body.contactTelephoneNumber;
         const emailAddress = request.body.emailAddress;
+
         // const cityOrTown = request.body.cityOrTown
         // const dateOfBirth = request.body.dateOfBirth
         // const firstNames = request.body.firstNames
@@ -240,7 +269,7 @@ exports.storeUserDetails = functions.https.onRequest((request, response) => {
             contactTelephoneNumber: request.body.contactTelephoneNumber,
             countryCode: request.body.countryCode,
             emailAddress: request.body.emailAddress,
-            telephoneAtHome: request.body.telephoneAtHome,
+            telephoneAtHome: request.body.telephoneAtHome
         };
 
         // New comment
@@ -256,7 +285,7 @@ exports.storeUserDetails = functions.https.onRequest((request, response) => {
 });
 
 function sendVerificationEmail() {
-    firebase.auth().currentUser.sendEmailVerification().then (function() {
+    firebase.auth().currentUser.sendEmailVerification().then(function () {
     })
 }
 
@@ -278,43 +307,36 @@ exports.validateLoginCredentials = functions.https.onRequest((request, response)
             return response.status(202).send('Password is short.');
         }
 
-        if (!firebase.auth().currentUser) {
-            firebase.auth().signInWithEmailAndPassword(email, password)
-                .then(credentials => {
-                    firebase.auth().currentUser.sendEmailVerification()
-                    return response.status(200).json({
-                        userUID: credentials.user.uid,
-                        displayName: credentials.user.displayName,
-                        photoURL: credentials.user.photoURL,
-                        email: credentials.user.email,
-                        emailVerified: credentials.user.emailVerified,
-                        phoneNumber: credentials.user.phoneNumber,
-                        refreshToken: credentials.user.refreshToken,
-                        verifyEmailAddress: true
-                    });
-                })
-                .catch(function (error) {
-                    var errorCode = error.code;
-                    var errorMessage = error.message;
+        firebase.auth().signInWithEmailAndPassword(email, password)
+            .then(credentials => {
 
-                    if (errorCode === 'auth/wrong-password') {
-                        return response.status(202).send('Email address or password incorrect');
-                    }
-                    if (errorCode === 'auth/user-disabled') {
-                        return response.status(202).send('User has been disabled. Contact IT support.');
-                    }
-                    if (errorCode === 'auth/user-not-found') {
-                        return response.status(202).send('Email address or password incorrect');
-                    }
-                    if (errorCode === 'auth/invalid-email') {
-                        return response.status(202).send('Email address or password incorrect');
-                    }
+                return response.status(200).json({
+                    userUID: credentials.user.uid,
+                    displayName: credentials.user.displayName,
+                    photoURL: credentials.user.photoURL,
+                    email: credentials.user.email,
+                    emailVerified: credentials.user.emailVerified,
+                    phoneNumber: credentials.user.phoneNumber,
+                    refreshToken: credentials.user.refreshToken,
+                    verifyEmailAddress: credentials.user.emailVerified
                 });
-        }
-        else {
-            firebase.auth().signOut();
-            response.send('User required to sign-in again.');
-        }
+            })
+            .catch(function (error) {
+                var errorCode = error.code;
+
+                if (errorCode === 'auth/wrong-password') {
+                    return response.status(202).send('Email address or password incorrect');
+                }
+                if (errorCode === 'auth/user-disabled') {
+                    return response.status(202).send('User has been disabled. Contact IT support.');
+                }
+                if (errorCode === 'auth/user-not-found') {
+                    return response.status(202).send('Email address or password incorrect');
+                }
+                if (errorCode === 'auth/invalid-email') {
+                    return response.status(202).send('Email address or password incorrect');
+                }
+            });
 
     });
 });
@@ -390,36 +412,78 @@ exports.accidentReportCreated = functions.firestore.document('accidentReports/{a
     return createNotification(notification);
 });
 
-function addPrimaryAccidentReportDetails (accidentReportData) {
-    
+function addPrimaryAccidentReportDetails(accidentReportData, accidentRefNumber) {
+
+    if (accidentReportData.formCompletedBy == 'Driver') {
+        db.collection('accidentReports').doc(accidentRefNumber).update({
+            accidentDate: accidentReportData.accidentDate,
+            accidentRegisterNumber: accidentRefNumber,
+            accidentCapturingNumber: accidentReportData.accidentCapturingNumber,
+            casNumber: '',
+            completedByDate: accidentReportData.completedByDate,
+            completedByInitials: accidentReportData.completedByInitials,
+            completedByRank: '',
+            completedByServiceNumber: '',
+            completedBySurname: accidentReportData.completedBySurname,
+            completedByTime: accidentReportData.completedByTime,
+            dayOfTheWeek: accidentReportData.dayOfTheWeek,
+            formCompletedBy: accidentReportData.formCompletedBy,
+        })
+    }
+
+    if (accidentReportData.formCompletedBy == 'Police Official') {
+        db.collection('accidentReports').doc(accidentRefNumber).update({
+            accidentDate: accidentReportData.accidentDate,
+            accidentRegisterNumber: accidentRefNumber,
+            accidentCapturingNumber: accidentReportData.accidentCapturingNumber,
+            casNumber: '',
+            completedByDate: accidentReportData.completedByDate,
+            completedByInitials: accidentReportData.completedByInitials,
+            completedByRank: accidentReportData.completedByRank,
+            completedByServiceNumber: accidentReportData.completedByServiceNumber,
+            completedBySurname: accidentReportData.completedBySurname,
+            completedByTime: accidentReportData.completedByTime,
+            dayOfTheWeek: accidentReportData.dayOfTheWeek,
+            formCompletedBy: accidentReportData.formCompletedBy,
+            hitAndRun: accidentReportData.hitAndRun,
+            inspectedByIntials: accidentReportData.inspectedByIntials,
+            inspectedBySurname: accidentReportData.inspectedBySurname,
+            inspectorRank: accidentReportData.inspectorRank,
+            inspectorServiceNumber: accidentReportData.completedByServiceNumber,
+            inspectorDateSigned: accidentReportData.inspectorDateSigned,
+            nameOfDepartment: accidentReportData.nameOfDepartment,
+            numberOfVehiclesInvolved: accidentReportData.numberOfVehiclesInvolved,
+            occuranceBook
+        })
+    }
 }
 
-function addConditionOfAccident (accidentReportData) {
+function addConditionOfAccident(accidentReportData) {
 
 }
 
-function addDriverOrCyclist (accidentReportData) {
+function addDriverOrCyclist(accidentReportData) {
 
 }
 
-function addLocationDetails (accidentReportData) {
+function addLocationDetails(accidentReportData) {
 
 }
 
-function addRoadTypeDetails (accidentReportData) {
+function addRoadTypeDetails(accidentReportData) {
 
 }
 
-function addSummaryOfPersonsInvolvedDetails (accidentReportData) {
+function addSummaryOfPersonsInvolvedDetails(accidentReportData) {
 
 }
 
-function addVehicleDetails (accidentReportData) {
+function addVehicleDetails(accidentReportData) {
 
 }
 
-function addWitnessInformation (accidentReportData) {
-    
+function addWitnessInformation(accidentReportData) {
+
 }
 
 exports.createAccidentReport = functions.https.onRequest((request, response) => {
@@ -432,15 +496,26 @@ exports.createAccidentReport = functions.https.onRequest((request, response) => 
 
         accidentReportData = request.body;
 
-        if (accidentReportData == '')
-        {
+        if (accidentReportData == '') {
             return response.status(404).json({
                 message: 'Unable to process an empty request. Please try again.'
             });
         }
+        const accidentRefNumber = '';
 
-        
-        
+        admin.firestore().collection('accidentReports').add().then(ref => {
+            accidentRefNumber = ref.id;
+        });
+
+        let successAddPrimaryAccidentReportDetails = addPrimaryAccidentReportDetails(accidentData, accidentRefNumber);
+        let successAddConditionOfAccident = addConditionOfAccident(accidentData);
+        let successAddDriverOrCyclist = addDriverOrCyclist(accidentData);
+        let successAddLocationDetails = addLocationDetails(accidentData);
+        let successAddRoadTypeDetails = addRoadTypeDetails(accidentData);
+        let successAddSummaryOfPersonsInvolvedDetails = addSummaryOfPersonsInvolvedDetails(accidentData);
+        let successAddVehicleDetails = addVehicleDetails(accidentData);
+        let successAddWitnessInformation = addWitnessInformation(accidentData);
+
         // const cityOrTown = request.body.cityOrTown
         // const dateOfBirth = request.body.dateOfBirth
         // const firstNames = request.body.firstNames
@@ -467,7 +542,7 @@ exports.createAccidentReport = functions.https.onRequest((request, response) => 
             contactTelephoneNumber: request.body.contactTelephoneNumber,
             countryCode: request.body.countryCode,
             emailAddress: request.body.emailAddress,
-            telephoneAtHome: request.body.telephoneAtHome,
+            telephoneAtHome: request.body.telephoneAtHome
         };
 
         // New comment
@@ -482,10 +557,10 @@ exports.createAccidentReport = functions.https.onRequest((request, response) => 
     });
 });
 
-function getAdminUserData (accidentCreatedBy, userType) {
+function getAdminUserData(accidentCreatedBy, userType) {
 
     admin.firestore.document(metroPoliceReference + accidentCreatedBy).get()
-    .then(() => {
-        return snapshot.data();
-    });
+        .then(() => {
+            return snapshot.data();
+        });
 };
