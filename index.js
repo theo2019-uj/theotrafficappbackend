@@ -436,12 +436,12 @@ function addPrimaryAccidentReportDetails(accidentReportData, accidentRefNumber) 
         return createdByRoadUser;
     }
     else {
-        if (accidentReportData.formCompletedBy == 'Police Official') {
+        if (accidentReportData.formCompletedBy == 'Admin') {
             const policeOfficialCreatedAccidentReport = {
                 accidentDate: accidentReportData.accidentDate,
                 accidentRegisterNumber: accidentRefNumber,
                 accidentCapturingNumber: accidentReportData.accidentCapturingNumber,
-                casNumber: '',
+                casNumber: "",
                 completedByDate: accidentReportData.completedByDate,
                 completedByInitials: accidentReportData.completedByInitials,
                 completedByRank: accidentReportData.completedByRank,
@@ -472,8 +472,7 @@ function addPrimaryAccidentReportDetails(accidentReportData, accidentRefNumber) 
 }
 
 function addConditionOfAccident(accidentReportData) {
-    if (accidentReportData != '')
-    {
+    if (accidentReportData != '') {
         const conditionsOfAccideData = accidentReportData.conditionsOfAccideData;
         return conditionsOfAccideData;
     }
@@ -483,8 +482,7 @@ function addConditionOfAccident(accidentReportData) {
 }
 
 function addDriverOrCyclistParticulars(accidentReportData) {
-    if (accidentReportData != '')
-    {
+    if (accidentReportData != '') {
         const driverOrCyclistParticulars = accidentReportData.driverOrCyclist;
         return driverOrCyclistParticulars;
     }
@@ -494,8 +492,7 @@ function addDriverOrCyclistParticulars(accidentReportData) {
 }
 
 function addLocationDetails(accidentReportData) {
-    if (accidentReportData != '')
-    {
+    if (accidentReportData != '') {
         const locationDetailsData = accidentReportData.location;
         return locationDetailsData;
     }
@@ -505,8 +502,7 @@ function addLocationDetails(accidentReportData) {
 }
 
 function addRoadTypeDetails(accidentReportData) {
-    if (accidentReportData != '')
-    {
+    if (accidentReportData != '') {
         const roadTypeDetails = accidentReportData.roadType;
         return roadTypeDetails;
     }
@@ -516,8 +512,7 @@ function addRoadTypeDetails(accidentReportData) {
 }
 
 function addSummaryOfPersonsInvolvedDetails(accidentReportData) {
-    if (accidentReportData != '')
-    {
+    if (accidentReportData != '') {
         const summaryOfPersonsInvolvedDetails = accidentReportData.summaryOfPersonsInvolved;
         return summaryOfPersonsInvolvedDetails;
     }
@@ -527,8 +522,7 @@ function addSummaryOfPersonsInvolvedDetails(accidentReportData) {
 }
 
 function addVehicleDetails(accidentReportData) {
-    if (accidentReportData != '')
-    {
+    if (accidentReportData != '') {
         const vehicleDetails = accidentReportData.vehicleDetails;
         return vehicleDetails;
     }
@@ -538,8 +532,7 @@ function addVehicleDetails(accidentReportData) {
 }
 
 function addWitnessInformation(accidentReportData) {
-    if (accidentReportData != '')
-    {
+    if (accidentReportData != '') {
         const witnessInformation = accidentReportData.witnesses;
         return witnessInformation;
     }
@@ -575,54 +568,56 @@ exports.createAccidentReport = functions.https.onRequest((request, response) => 
                 const summaryOfPersonsInvolvedData = addSummaryOfPersonsInvolvedDetails(accidentReportData);
                 const vehicleDetailsData = addVehicleDetails(accidentReportData);
                 const witnessInformationData = addWitnessInformation(accidentReportData);
-                
+
 
                 if (primaryAccidentReportData != '' || conditionsOfAccidentData != '' || driverOrCyclistParticularsData != '' || locationDetailsData != '' || roadTypeDetailsData != '' || summaryOfPersonsInvolvedData != '' || vehicleDetailsData != '' || witnessInformationData != '') {
                     db.collection('accidentReports').doc(ref.id).update(primaryAccidentReportData);
                     db.collection('accidentReports/' + ref.id + '/accidentDetails').doc('conditionsOfAccident').set(conditionsOfAccidentData)
-                    for (let i in driverOrCyclistParticularsData.data)
-                    {
-                        db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('driverOrCyclist').collection('driverOrCyclist'+i).add(driverOrCyclistParticularsData.data[i]);
+                    for (let i in driverOrCyclistParticularsData.data) {
+                        db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('driverOrCyclist').collection('driverOrCyclist' + i).add(driverOrCyclistParticularsData.data[i]);
                     }
                     //db.collection('accidentReports/' + ref.id + '/accidentDetails').doc('conditionsOfAccident').set(conditionsOfAccidentData);
 
-                    if (locationDetailsData.locationType == 'freewayOrRural')
-                    {
-                        db.collection('accidentReports/' + ref.id + '/accidentDetails').doc('location').set(locationDetailsData.primaryDetails);
-                        db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('location').collection('freewayOrRural').add(locationDetailsData.locationDetails);
-                    }
-                    if (locationDetailsData.locationType == 'townOrCity')
-                    {
+                    if (locationDetailsData.locationType == 'freewayOrRural') {
                         db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('location').set(locationDetailsData);
-                        db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('location').collection('townOrCity').add(locationDetailsData.locationDetails);
+                    }
+                    if (locationDetailsData.locationType == 'townOrCity') {
+                        db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('location').set(locationDetailsData);
                     }
 
-                    // db.collection('accidentReports/' + ref.id + '/accidentDetails').doc('summaryOfPersonsInvolved').update(summaryOfPersonsInvolvedData.particularsOfKilledPassengersOrPedestrians);
-                    // db.collection('accidentReports/' + ref.id + '/accidentDetails').doc('summaryOfPersonsInvolved').update(summaryOfPersonsInvolvedData.particularsOfPassengersNotInjured);
+                    if (summaryOfPersonsInvolvedData.particularsOfKilledPassengersOrPedestrians.data != '') {
+                        for (let b in summaryOfPersonsInvolvedData.particularsOfKilledPassengersOrPedestrians.data) {
+                            db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('summaryOfPersonsInvolved').collection('particularsOfKilledPassengersOrPedestrians' + b).add(summaryOfPersonsInvolvedData.particularsOfKilledPassengersOrPedestrians.data);
+                        }
+                    }
 
-                    // for (k in vehicleDetailsData)
-                    // {
-                    //     db.collection('accidentReports/' + ref.id + '/accidentDetails/vehicleDetails').doc(vehicleDetailsData[k].vehicleIdentifierNumber).update(vehicleDetailsData[k]);
-                    // }
+                    if (summaryOfPersonsInvolvedData.particularsOfPassengersNotInjured.data != '') {
+                        for (let a in summaryOfPersonsInvolvedData.particularsOfPassengersNotInjured.data) {
+                            db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('summaryOfPersonsInvolved').collection('particularsOfPassengersNotInjured' + a).add(summaryOfPersonsInvolvedData.particularsOfPassengersNotInjured.data[a]);
+                        }
+                    }
 
-                    // for (l in witnessInformationData)
-                    // {
-                    //     db.collection('accidentReports/' + ref.id + '/accidentDetails/witnesses').doc(witnessInformationData[l].witnessIdentifierNumber).update(witnessInformationData[l].witnessDetails);
-                    // }
+                    for (let k in vehicleDetailsData.data) {
+                        db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('vehicleDetails').collection('vehicle' + k).add(vehicleDetailsData.data[k]);
+                    }
 
-                        // .catch(error => {
-                        //     console.log(error);
-                        //     response.status(404).json({
-                        //         message: 'There was an issue with the data'
-                        //     });
-                        // });
+                    for (let l in witnessInformationData.data) {
+                        db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('witnesses').collection('witness' + l).add(witnessInformationData.data[l]);
+                    }
+
+                    // .catch(error => {
+                    //     console.log(error);
+                    //     response.status(404).json({
+                    //         message: 'There was an issue with the data'
+                    //     });
+                    // });
                 }
 
                 response.status("200").json({
                     message: "Accident report successfully created. In case you didn't notice, we have sent you your accident reference number to your cellphone number and email."
                 })
             })
-            .catch (error => {
+            .catch(error => {
                 console.log(error);
                 response.status(500).json({
                     message: 'There was an issue with the data'
@@ -683,14 +678,13 @@ exports.createInfringementNoticeForUnattendedVehicle = functions.https.onRequest
 
         const infringementNoticeData = request.body;
 
-        if (infringementNoticeData != '')
-        {
-            const addedSectionA = addSectionA (infringementNoticeData);
-            const addedSectionB = addSectionB (infringementNoticeData);
-            const addedSectionC = addSectionC (infringementNoticeData);
-            const addedSectionD = addSectionD (infringementNoticeData);
-            const addedSectionE = addSectionE (infringementNoticeData);
-            const addedSectionF = addSectionF (infringementNoticeData);
+        if (infringementNoticeData != '') {
+            const addedSectionA = addSectionA(infringementNoticeData);
+            const addedSectionB = addSectionB(infringementNoticeData);
+            const addedSectionC = addSectionC(infringementNoticeData);
+            const addedSectionD = addSectionD(infringementNoticeData);
+            const addedSectionE = addSectionE(infringementNoticeData);
+            const addedSectionF = addSectionF(infringementNoticeData);
         }
     });
 });
@@ -717,10 +711,9 @@ exports.infringementNoticeWithoutDriverCreated = functions.firestore.document('i
         })
 });
 
-function addSectionA (infringementData) {
-    
-    if (infringementData.typeOfRoadUser == 'individual')
-    {
+function addSectionA(infringementData) {
+
+    if (infringementData.typeOfRoadUser == 'individual') {
         db.collection('infringementNoticeWithoutDriver').doc().collection('A').add({
             roadUserIdNumber: infringementData.roadUserIdNumber,
             roadUserLicenseNo: infringementData.roadUserLicenseNo,
@@ -733,8 +726,7 @@ function addSectionA (infringementData) {
         })
     }
 
-    if (infringementData.typeOfRoadUser == 'business')
-    {
+    if (infringementData.typeOfRoadUser == 'business') {
         db.collection('infringmentNotieWithoutDriver').doc().collection('A').add({
             roadUserBusinessAddress: infringementData.roadUserBusinessAddress,
             roadUserBusinessPostalCode: infringementData.roadUserBusinessPostalCode,
@@ -751,22 +743,22 @@ function addSectionA (infringementData) {
     }
 }
 
-function addSectionB (infringementData) {
+function addSectionB(infringementData) {
 
 }
 
-function addSectionC (infringementData) {
+function addSectionC(infringementData) {
 
 }
 
-function addSectionD (infringementData) {
+function addSectionD(infringementData) {
 
 }
 
-function addSectionE (infringementData) {
+function addSectionE(infringementData) {
 
 }
 
-function addSectionF (infringementData) {
+function addSectionF(infringementData) {
 
 }
