@@ -4,9 +4,17 @@ const firebase = require('firebase');
 const app = require('firebase-app');
 const functions = require('firebase-functions');
 const cors = require('cors')({ origin: true });
+const nodemailer = require('nodemailer');
 // const firebaseHelper = require('firebase-functions-helper');
 // const express = require('express');
 // const bodyParser = require("body-parser");
+let transport = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'theotraffic.info@gmail.com',
+        pass: 'TheOTraffic12345'
+    }
+});
 
 admin.initializeApp(functions.config().firebase);
 
@@ -112,10 +120,6 @@ exports.getListOfVehiclesByRoadUserId = functions.https.onRequest((request, resp
             });
     });
 })
-
-exports.getListOfAccidents = functions.https.onRequest((request, response) => {
-
-});
 
 exports.updateAccidentReportStatus = functions.https.onRequest((request, response) => {
 
@@ -431,6 +435,7 @@ function addPrimaryAccidentReportDetails(accidentReportData, accidentRefNumber) 
             numberOfVehiclesInvolved: accidentReportData.numberOfVehiclesInvolved,
             policeStationReported: accidentReportData.policeStationReported,
             timeOfAccident: new Date(accidentReportData.timeOfAccident),
+            creatorUID: accidentReportData.creatorUID,
             accidentReportStatus: "Pending Approval"
         }
         return createdByRoadUser;
@@ -511,6 +516,16 @@ function addRoadTypeDetails(accidentReportData) {
     }
 }
 
+function addJunctionTypeDetails(accidentReportData) {
+    if (accidentReportData != '') {
+        const junctionTypeDetails = accidentReportData.junctionType;
+        return junctionTypeDetails;
+    }
+    else {
+        return '';
+    }
+}
+
 function addSummaryOfPersonsInvolvedDetails(accidentReportData) {
     if (accidentReportData != '') {
         const summaryOfPersonsInvolvedDetails = accidentReportData.summaryOfPersonsInvolved;
@@ -565,18 +580,20 @@ exports.createAccidentReport = functions.https.onRequest((request, response) => 
                 const driverOrCyclistParticularsData = addDriverOrCyclistParticulars(accidentReportData);
                 const locationDetailsData = addLocationDetails(accidentReportData);
                 const roadTypeDetailsData = addRoadTypeDetails(accidentReportData);
+                const junctionTypeDetailsData = addJunctionTypeDetails(accidentReportData);
                 const summaryOfPersonsInvolvedData = addSummaryOfPersonsInvolvedDetails(accidentReportData);
                 const vehicleDetailsData = addVehicleDetails(accidentReportData);
                 const witnessInformationData = addWitnessInformation(accidentReportData);
 
 
-                if (primaryAccidentReportData != '' || conditionsOfAccidentData != '' || driverOrCyclistParticularsData != '' || locationDetailsData != '' || roadTypeDetailsData != '' || summaryOfPersonsInvolvedData != '' || vehicleDetailsData != '' || witnessInformationData != '') {
+                if (primaryAccidentReportData != '' || conditionsOfAccidentData != '' || driverOrCyclistParticularsData != '' || locationDetailsData != '' || roadTypeDetailsData != '' || junctionTypeDetailsData != '' || summaryOfPersonsInvolvedData != '' || vehicleDetailsData != '' || witnessInformationData != '') {
                     db.collection('accidentReports').doc(ref.id).update(primaryAccidentReportData);
                     db.collection('accidentReports/' + ref.id + '/accidentDetails').doc('conditionsOfAccident').set(conditionsOfAccidentData)
                     for (let i in driverOrCyclistParticularsData.data) {
                         db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('driverOrCyclist').collection('driverOrCyclist' + i).add(driverOrCyclistParticularsData.data[i]);
                     }
-                    //db.collection('accidentReports/' + ref.id + '/accidentDetails').doc('conditionsOfAccident').set(conditionsOfAccidentData);
+                    db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('roadType').set(roadTypeDetailsData);
+                    db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('junctionType').set(junctionTypeDetailsData);
 
                     if (locationDetailsData.locationType == 'freewayOrRural') {
                         db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('location').set(locationDetailsData);
@@ -613,15 +630,45 @@ exports.createAccidentReport = functions.https.onRequest((request, response) => 
                     // });
                 }
 
-                response.status("200").json({
-                    message: "Accident report successfully created. In case you didn't notice, we have sent you your accident reference number to your cellphone number and email."
-                })
+                admin.auth().getUser(primaryAccidentReportData.creatorUID)
+                .then (function(userRecord) {
+                    const mailOptions = {
+                        from: 'The O Traffic Info <theotraffic.info@gmail.com>', // Something like: Jane Doe <janedoe@gmail.com>
+                        to: userRecord.email,
+                        subject: 'Accident Report Created: ' + ref.id, // email subject
+                        html: `<body aria-readonly="false"><font face="arial, helvetica, sans-serif">Dear ${userRecord.displayName},<br />
+                        <br />
+                        Your accident report has been created successfully.<br />
+                        <br />
+                        Please note that following reference number: <strong>${ref.id}</strong></font><br />
+                        <br />
+                        <span style="font-family:arial,helvetica,sans-serif">You are required to go to ${primaryAccidentReportData.policeStationReported} and present this email to the police officer, who will approve the accident on the system. You will subsequently receive another email with the case number for your convenience.<br />
+                        <br />
+                        --<br />
+                        Yours in safety,<br />
+                        The-O Traffic</span></body>` // email content in HTML
+                    };
+
+                    transport.sendMail(mailOptions, (error, info) => {
+                        if (error) {
+                            console.log(error);
+                            response.status(400).json({
+                                message: 'An issue was detected while processing your request. Please contact support.'
+                            });
+                        }
+                        else {
+                            response.status(200).json({
+                                message: "Accident report successfully created. In case you didn't notice, we have sent you your accident reference number to your email address."
+                            });
+                        }
+                    });
+                });
             })
             .catch(error => {
                 console.log(error);
                 response.status(500).json({
                     message: 'There was an issue with the data'
-                })
+                });
             });
 
         // const successAddConditionOfAccident = addConditionOfAccident(accidentReportData);
@@ -762,3 +809,123 @@ function addSectionE(infringementData) {
 function addSectionF(infringementData) {
 
 }
+
+exports.getListOfAccidents = functions.https.onRequest((request, response) => {
+    cors(request, response, () => {
+        if (request.method !== "GET") {
+            return response.status(500).json({
+                message: "Operation not allowed"
+            });
+        }
+
+        const listOfAccidents = {};
+
+        db.collection('accidentReports').get()
+        .then(snapshot => {
+            snapshot.forEach(doc => {
+                listOfAccidents[doc.id] = doc.data();
+            });
+            response.status(200).send(listOfAccidents);
+        })
+        .catch (error => {
+            console.log(error);
+            response.status(500).json({
+                message: 'Something went wrong. Please contact service provider.'
+            });
+        });
+    });
+})
+
+exports.getAccidentById = functions.https.onRequest((request, response) => {
+    cors(request, response, () => {
+        if (request.method !== "GET") {
+            return response.status(500).json({
+                message: "Operation not allowed"
+            });
+        }
+
+        let accidentUID = request.query.accidentUID;
+        const detailsOfAccident = {};
+
+        db.collection('accidentReports').doc(accidentUID).get()
+        .then(snapshot => {
+            if (!snapshot.empty)
+            {
+                detailsOfAccident [accidentUID] = snapshot.data();
+                response.status(200).send(detailsOfAccident);
+            }
+            else {
+                response.status(201).json({
+                    message: 'Accident report was not found.'
+                });
+            }
+        })
+        .catch (error => {
+            console.log(error);
+            response.status(500).json({
+                message: 'Something went wrong. Please contact service provider.'
+            });
+        });
+    });
+})
+
+exports.getAccidentsByCreatorUID = functions.https.onRequest((request, response) => {
+    cors(request, response, () => {
+        if (request.method !== "GET") {
+            return response.status(500).json({
+                message: "Operation not allowed"
+            });
+        }
+
+        let creatorUID = request.query.creatorUID;
+        const accidentsByCreatorIdData = {};
+
+        db.collection('accidentReports').where('creatorUID', '==', creatorUID).get()
+        .then(snapshot => {
+            if (!snapshot.empty)
+            {
+                snapshot.forEach(doc => {
+                    accidentsByCreatorIdData[doc.id] = doc.data();
+                });
+                response.status(200).send(accidentsByCreatorIdData);
+            }
+            else {
+                response.status(201).json({
+                    message: 'Accident report was not found.'
+                });
+            }
+        })
+        .catch (error => {
+            console.log(error);
+            response.status(500).json({
+                message: 'Something went wrong. Please contact service provider.'
+            });
+        });
+    });
+})
+
+exports.approveOrDecline = functions.https.onRequest((request, response) => {
+    cors(request, response, () => {
+        if (request.method !== "POST") {
+            return response.status(500).json({
+                message: "Operation not allowed"
+            });
+        }
+
+        const listOfAccidents = {};
+
+        db.collection('accidentReports').get()
+        .then(snapshot => {
+            snapshot.forEach(doc => {
+                listOfAccidents[doc.id] = doc.data();
+            });
+            response.status(200).send(listOfAccidents);
+        })
+        .catch (error => {
+            console.log(error);
+            response.status(500).json({
+                message: 'Something went wrong. Please contact service provider.'
+            });
+        });
+    });
+})
