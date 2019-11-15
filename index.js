@@ -382,32 +382,6 @@ exports.updateUserDetails = functions.https.onRequest((request, response) => {
 
         const roadUserUID = request.body.uid;
         delete requestData.roadUserIdNumber;
-        // const cellPhoneNumber = request.body.cellPhoneNumber;
-        // const telephoneAtHome = request.body.telephoneAtHome;
-        // const countryCode = request.body.countryCode;
-        // const contactTelephoneNumber = request.body.contactTelephoneNumber;
-        // const emailAddress = request.body.emailAddress;
-        // const cityOrTown = request.body.cityOrTown
-        // const dateOfBirth = request.body.dateOfBirth
-        // const firstNames = request.body.firstNames
-        // const gender = request.body.gender
-        // const initials = request.body.initials
-        // const licenseCode = request.body.licenseCode
-        // const licenseDateOfExpiry = request.body.licenseDateOfExpiry
-        // const licenseDateOfIssue = request.body.licenseDateOfIssue
-        // const licenseNumber = request.body.licenseNumber
-        // const noticeDeliveryToPostalAddress = request.body.noticeDeliveryToPostalAddress
-        // const postalAddress1 = request.body.postalAddress1
-        // const postalAddress2 = request.body.postalAddress2
-        // const postalAddress3 = request.body.postalAddress3
-        // const postalAddressCode = request.body.postalAddressCode
-        // const streetAddress1 = request.body.streetAddress1
-        // const streetAddress2 = request.body.licenseNumber
-        // const streetAddress3 = request.body.streetAddress3
-        // const suburb = request.body.suburb
-        // const surname = request.body.surname
-
-        // Gets data from the request which will be used to add to the POST service
 
         if (!requestData.empty) {
             db.collection('users').doc('roadUsers').collection('individuals').where("uid", "==", roadUserUID).get()
@@ -614,22 +588,11 @@ function addPrimaryAccidentReportDetails(accidentReportData) {
 
     if (accidentReportData.formCompletedBy == 'Driver') {
         const createdByRoadUser = {
-            // accidentDate: accidentReportData.accidentDate,
             accidentRegisterNumber: "",
             accidentCapturingNumber: "",
             casNumber: "",
-            // completedByDate: accidentReportData.completedByDate,
-            // completedByInitials: accidentReportData.completedByInitials,
             completedByRank: "",
             completedByServiceNumber: "",
-            // completedBySurname: accidentReportData.completedBySurname,
-            // completedByTime: accidentReportData.completedByTime,
-            // dayOfTheWeek: accidentReportData.dayOfTheWeek,
-            // formCompletedBy: accidentReportData.formCompletedBy,
-            // numberOfVehiclesInvolved: accidentReportData.numberOfVehiclesInvolved,
-            // policeStationReported: accidentReportData.policeStationReportedArea,
-            // timeOfAccident: accidentReportData.timeOfAccident,
-            // creatorUID: accidentReportData.creatorUID,
             accidentReportStatus: "Pending Approval"
         };
         return createdByRoadUser;
@@ -791,55 +754,15 @@ exports.createAccidentReport = functions.https.onRequest((request, response) => 
                 if (primaryAccidentReportData != '' || conditionsOfAccidentData != '' || driverOrCyclistParticularsData != '' || locationDetailsData != '' || roadTypeDetailsData != '' || junctionTypeDetailsData != '' || summaryOfPersonsInvolvedData != '' || vehicleDetailsData != '' || witnessInformationData != '') {
                     
                     db.collection('accidentReports').doc(ref.id).update(primaryAccidentReportData);
-                    db.collection('accidentReports').doc(ref.id).update(accidentReportData)
-                    // db.collection('accidentReports/' + ref.id + '/accidentDetails').doc('conditionsOfAccident').set(conditionsOfAccidentData);
-                    // db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('driverOrCyclist').set(driverOrCyclistParticularsData)
-                    // db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('roadType').set(roadTypeDetailsData);
-                    // db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('junctionType').set(junctionTypeDetailsData);
-
-                    // if (locationDetailsData.locationType == 'freewayOrRural') {
-                    //     db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('location').set(locationDetailsData);
-                    // }
-                    // if (locationDetailsData.locationType == 'townOrCity') {
-                    //     db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('location').set(locationDetailsData);
-                    // }
-
-                    // db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('summaryOfPersonsInvolved').set(summaryOfPersonsInvolvedData);
-
-                    // for (let k in vehicleDetailsData.data) {
-                    //     db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('vehicleDetails').collection('vehicle' + k).add(vehicleDetailsData.data[k]);
-                    // }
-
-                    // for (let l in witnessInformationData.data) {
-                    //     db.collection('accidentReports').doc(ref.id).collection('accidentDetails').doc('witnesses').collection('witness' + l).add(witnessInformationData.data[l]);
-                    // }
-
-                    // if (accidentPhotos.data != '') {
-                    //     for (let i in accidentPhotos.data) {
-                    //         const options = {
-                    //             destinaton: "encrypted.txt",
-                    //             enryptionKey: accidentPhotos.data[i]
-                    //         };
-
-                    //         storage
-                    //             .bucket('the-o-2019.appspot.com')
-                    //             .upload('https://www.visitberlin.de/system/files/image/Taxis_iStock.com_Foto%20Maxiphoto_DL_PPT_0.jpg', options)
-                    //             .then(() => {
-                    //                 console.log('Photo uploaded')
-                    //             })
-                    //             .catch(err => {
-                    //                 console.error('ERROR:', err);
-                    //             });
-                    //     }
-                    // }
+                    db.collection('accidentReports').doc(ref.id).update(accidentReportData);
                 }
 
                 admin.auth().getUser(accidentReportData.creatorUID)
                     .then(function (userRecord) {
                         const mailOptions = {
-                            from: 'The O Traffic Info <theotraffic.info@gmail.com>', // Something like: Jane Doe <janedoe@gmail.com>
+                            from: 'The O Traffic Info <theotraffic.info@gmail.com>', 
                             to: userRecord.email,
-                            subject: 'Accident Report Created: ' + ref.id, // email subject
+                            subject: 'Accident Report Created: ' + ref.id, 
                             html: `<body aria-readonly="false"><font face="arial, helvetica, sans-serif">Dear ${userRecord.displayName},<br />
                         <br />
                         Your accident report has been created successfully.<br />
@@ -890,40 +813,6 @@ exports.createAccidentReport = functions.https.onRequest((request, response) => 
                     message: 'There was an issue with the data'
                 });
             });
-
-        // const successAddConditionOfAccident = addConditionOfAccident(accidentReportData);
-        // const successAddDriverOrCyclist = addDriverOrCyclist(accidentReportData);
-        // const successAddLocationDetails = addLocationDetails(accidentReportData);
-        // const successAddRoadTypeDetails = addRoadTypeDetails(accidentReportData);
-        // const successAddSummaryOfPersonsInvolvedDetails = addSummaryOfPersonsInvolvedDetails(accidentReportData);
-        // const successAddVehicleDetails = addVehicleDetails(accidentReportData);
-        // const successAddWitnessInformation = addWitnessInformation(accidentReportData);
-
-
-        // const cityOrTown = request.body.cityOrTown
-        // const dateOfBirth = request.body.dateOfBirth
-        // const firstNames = request.body.firstNames
-        // const gender = request.body.gender
-        // const initials = request.body.initials
-        // const licenseCode = request.body.licenseCode
-        // const licenseDateOfExpiry = request.body.licenseDateOfExpiry
-        // const licenseDateOfIssue = request.body.licenseDateOfIssue
-        // const licenseNumber = request.body.licenseNumber
-        // const noticeDeliveryToPostalAddress = request.body.noticeDeliveryToPostalAddress
-        // const postalAddress1 = request.body.postalAddress1
-        // const postalAddress2 = request.body.postalAddress2
-        // const postalAddress3 = request.body.postalAddress3
-        // const postalAddressCode = request.body.postalAddressCode
-        // const streetAddress1 = request.body.streetAddress1
-        // const streetAddress2 = request.body.licenseNumber
-        // const streetAddress3 = request.body.streetAddress3
-        // const suburb = request.body.suburb
-        // const surname = request.body.surname
-
-        // Gets data from the request which will be used to add to the POST service
-
-
-        // New comment
     });
 });
 
@@ -1084,71 +973,6 @@ exports.createInfringementNoticeForUnattendedVehicle = functions.https.onRequest
                 console.log(error);
                 return response.status(400).send(error);
             });
-
-
-        // const ownerOfVehicle = getOwnerOfVehicle(vehicleDetails.data.chassisNumberVIN);
-
-        // const ownerOfVehicleData = ownerOfVehicle.data;
-        // var ownerOfVehicleIDNumber = ownerOfVehicle.id;
-        // const policeOfficer = getOfficerDetails(infringementNoticeData.officerInfrastructureNumber);
-
-        // if (policeOfficer == '') {
-        //     response.status('500').json({
-        //         message: 'Could not find the police officer witht the infrastructure number provided.'
-        //     })
-        // }
-
-        // let example = db.collection('vehicleInformation').where('vehicleRegistrationNumber', '==', infringementNoticeData.vehicleRegistrationNumber).get()
-        // .then (snapshot => {
-        //     snapshot.forEach(doc => {
-        //         const vehicleOwnerData = ({
-        //             id: doc.id,
-        //             data: doc.data()
-        //         });
-        //         response.send(vehicleOwnerData)
-        //     });
-        // })
-
-        // if (infringementNoticeData = ! '' || vehicleDetails != '' || ownerOfVehicle != '') {
-        //     db.collection('infringementNoticeWithoutDriver').add({})
-        //         .then(ref => {
-        //             db.collection('infringementNoticeWithoutDriver').doc().set({
-        //                 infringementDate: infringementNoticeData.infringementDate,
-        //                 suburb: infringementNoticeData.suburb,
-        //                 streetA: infringementNoticeData.streeA,
-        //                 streetB: infringementNoticeData.streetB,
-        //                 genLocation: infringementNoticeData.genLocation,
-        //                 vehicleLicenseNo: vehicleDetails.licenseNumber,
-        //                 licenseDiskNo: infringementNoticeData.vehicleRegistrationNumber,
-        //                 vehicleMake: vehicleDetails.make,
-        //                 issuingAuthority: infringementNoticeData.issuingAuthority,
-        //                 officerInfrastructureNumber: infringementNoticeData.officerInfrastructureNumber,
-        //                 charges: {
-        //                     charge1: {
-        //                         chargeCode1: infringementNoticeData.chargedCode1,
-        //                         chargeCode1Description: infringementNoticeData.chargeCode1Description
-        //                     },
-        //                     charge2: {
-        //                         chargeCode2: infringementNoticeData.chargedCode2,
-        //                         chargeCode2Description: infringementNoticeData.chargeCode2Description
-        //                     },
-        //                     charge3: {
-        //                         chargeCode3: infringementNoticeData.chargedCode3,
-        //                         chargeCode3Description: infringementNoticeData.chargeCode3Description
-        //                     }
-        //                 },
-        //                 metroPolicePersonnelNumber: policeOfficer.personnelNumber,
-        //                 ownerIdNumber: ownerOfVehicleIDNumber,
-        //                 ownerLicenseNumber: ownerOfVehicleData.licenseNumber,
-        //                 infringementNoticeId: ref.id
-        //             });
-        //         })
-        //         .catch(error => {
-        //             console.log(error);
-        //             response.status(500).send(error);
-        //         });
-        // }
-
     });
 });
 
@@ -1513,52 +1337,6 @@ function addSectionF(infringementData) {
         return '';
     }
 }
-
-// function addSectionG(infringementData) {
-//     if (infringementData.sectionG != '') {
-//         return infringementData.sectionG;
-//     }
-//     else {
-//         return '';
-//     }
-// }
-
-// function addSectionH(infringementData) {
-//     if (infringementData.sectionH != '') {
-//         return infringementData.sectionH;
-//     }
-//     else {
-//         return '';
-//     }
-// }
-
-// function getInfringementData(infringementData) {
-//     // db.collection('roadTrafficInfringement').where('chargeCode', '==', infringementData.sectionB.charges.charge1.chargeCode).get()
-//     //     .then(snapshotCharge1 => {
-//     //         db.collection('roadTrafficInfringement').where('chargeCode', '==', infringementData.sectionB.charges.charge2.chargeCode).get()
-//     //         .then (snashotCharge2 => {
-//     //             db.collection('roadTrafficInfringement').where('chargeCode', '==', infringementData.sectionB.charges.charge3.chargeCode).get()
-//     //             .then (snapshotCharge3 => {
-
-
-//     //             })
-//     //         });
-//     //     });
-//     const roadUserInfringementData = infringementData.charges;
-
-//     for (x in roadUserInfringementData) {
-//         db.collection('roadTrafficInfringement').doc(roadUserInfringementData[x].chargeCode).get()
-//             .then(doc => {
-//                 const infringements = {
-//                     id: doc.id,
-//                     data: doc.data()
-//                 }
-//             })
-//     }
-
-//     return infringements;
-
-// }
 
 exports.createWrittenInfringementNotice = functions.https.onRequest((request, response) => {
     cors(request, response, () => {
